@@ -58,17 +58,18 @@ const gameContainer = document.getElementById('game-container');
       const currentLeft = parseInt(jet.style.left);
       const currentTop = parseInt(jet.style.top);
       
-      if (keys['ArrowLeft'] && currentLeft > 0) {
-        jet.style.left = (currentLeft - jetSpeed) + 'px';
+      // Fixed movement to prevent going out of bounds
+      if (keys['ArrowLeft']) {
+        jet.style.left = Math.max(0, currentLeft - jetSpeed) + 'px';
       }
-      if (keys['ArrowRight'] && currentLeft < window.innerWidth - 50) {
-        jet.style.left = (currentLeft + jetSpeed) + 'px';
+      if (keys['ArrowRight']) {
+        jet.style.left = Math.min(window.innerWidth - 50, currentLeft + jetSpeed) + 'px';
       }
-      if (keys['ArrowUp'] && currentTop > 0) {
-        jet.style.top = (currentTop - jetSpeed) + 'px';
+      if (keys['ArrowUp']) {
+        jet.style.top = Math.max(0, currentTop - jetSpeed) + 'px';
       }
-      if (keys['ArrowDown'] && currentTop < window.innerHeight - 50) {
-        jet.style.top = (currentTop + jetSpeed) + 'px';
+      if (keys['ArrowDown']) {
+        jet.style.top = Math.min(window.innerHeight - 50, currentTop + jetSpeed) + 'px';
       }
       
       // Move bullets
@@ -200,11 +201,7 @@ const gameContainer = document.getElementById('game-container');
         }
       }
       
-      // Check if jet hits window boundaries
-      if (jetRect.left < 0 || jetRect.right > window.innerWidth || 
-          jetRect.top < 0 || jetRect.bottom > window.innerHeight) {
-        gameOver();
-      }
+      // Removed the boundary check that was causing the bug
     }
     
     // Collision detection
