@@ -15,6 +15,15 @@
       left: 10px;
       color: white;
       font-size: 24px;
+      z-index: 100;
+    }
+    #level {
+      position: absolute;
+      top: 40px;
+      left: 10px;
+      color: white;
+      font-size: 18px;
+      z-index: 100;
     }
     #game-over {
       position: absolute;
@@ -25,6 +34,7 @@
       font-size: 36px;
       text-align: center;
       display: none;
+      z-index: 100;
     }
     #restart-btn {
       padding: 10px 20px;
@@ -38,27 +48,51 @@
     }
     .jet {
       position: absolute;
-      width: 50px;
-      height: 50px;
-      background-color: #3498db;
-      border-radius: 5px;
-    }
-    .alien {
-      position: absolute;
       width: 40px;
       height: 40px;
-      background-color: #e74c3c;
+      background-color: #333;
+      border: 1px solid #fff;
+    }
+    .spider {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background-color: #000;
+      border: 1px solid #fff;
       border-radius: 50%;
+    }
+    .bacteria {
+      position: absolute;
+      width: 25px;
+      height: 25px;
+      background-color: #00FF00;
+      border-radius: 40%;
+    }
+    .fungi {
+      position: absolute;
+      width: 20px;
+      height: 25px;
+      background-color: #FFFF00;
+      border-radius: 50% 50% 30% 30% / 60% 60% 40% 40%;
+    }
+    .asteroid {
+      position: absolute;
+      width: 35px;
+      height: 35px;
+      background-color: #8B4513;
+      border-radius: 30%;
+      border: 1px solid #ccc;
     }
     .bullet {
       position: absolute;
-      width: 5px;
-      height: 15px;
-      background-color: yellow;
+      width: 4px;
+      height: 12px;
+      background-color: #0F0; /* Neon Green */
+      box-shadow: 0 0 5px #0F0, 0 0 10px #0F0; /* Glow effect */
     }
-    .alien-bullet {
+    .enemy-bullet {
       position: absolute;
-      width: 5px;
-      height: 15px;
+      width: 4px;
+      height: 12px;
       background-color: #ff6b6b;
     }
