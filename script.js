@@ -1,33 +1,47 @@
 const gameContainer = document.getElementById('game-container');
     const scoreDisplay = document.getElementById('score');
+    const levelDisplay = document.getElementById('level');
     const gameOverDisplay = document.getElementById('game-over');
     const finalScoreDisplay = document.getElementById('final-score');
     const restartButton = document.getElementById('restart-btn');
     
     let jet;
     let score = 0;
+    let level = 1;
     let gameRunning = true;
     let bullets = [];
-    let aliens = [];
-    let alienBullets = [];
+    let enemies = [];
+    let enemyBullets = [];
+    let asteroids = [];
     let keys = {};
-    let alienSpawnInterval;
-    let alienShootInterval;
+    let enemySpawnInterval;
+    let enemyShootInterval;
+    let asteroidSpawnInterval;
     let gameLoopInterval;
+    
+    // Enemy types
+    const ENEMY_TYPES = {
+      SPIDER: 'spider',
+      BACTERIA: 'bacteria',
+      FUNGI: 'fungi'
+    };
     
     // Game initialization
     function initGame() {
       // Reset game state
       score = 0;
+      level = 1;
       gameRunning = true;
       bullets = [];
-      aliens = [];
-      alienBullets = [];
+      enemies = [];
+      enemyBullets = [];
+      asteroids = [];
       keys = {};
       
       // Clear previous elements
       gameContainer.innerHTML = '';
       gameContainer.appendChild(scoreDisplay);
+      gameContainer.appendChild(levelDisplay);
       gameContainer.appendChild(gameOverDisplay);
       
       // Hide game over display
@@ -36,22 +50,44 @@ const gameContainer = document.getElementById('game-container');
       // Create jet
       jet = document.createElement('div');
       jet.className = 'jet';
-      jet.style.left = (window.innerWidth / 2 - 25) + 'px';
+      jet.style.left = (window.innerWidth / 2 - 20) + 'px';
       jet.style.top = (window.innerHeight - 100) + 'px';
       gameContainer.appendChild(jet);
       
-      // Update score display
+      // Update displays
       scoreDisplay.textContent = 'Score: 0';
+      levelDisplay.textContent = 'Level: 1';
       
       // Set up game intervals
-      alienSpawnInterval = setInterval(spawnAlien, 1500);
-      alienShootInterval = setInterval(alienShoot, 2000);
+      enemySpawnInterval = setInterval(spawnEnemy, 1500);
+      enemyShootInterval = setInterval(enemyShoot, 2000);
+      asteroidSpawnInterval = setInterval(spawnAsteroid, 3000);
       gameLoopInterval = setInterval(gameLoop, 20);
     }
     
     // Game loop
     function gameLoop() {
       if (!gameRunning) return;
+      
+      // Check for level up
+      const newLevel = Math.floor(score / 100) + 1;
+      if (newLevel > level) {
+        level = newLevel;
+        levelDisplay.textContent = 'Level: ' + level;
+        
+        // Increase difficulty
+        clearInterval(enemySpawnInterval);
+        clearInterval(enemyShootInterval);
+        clearInterval(asteroidSpawnInterval);
+        
+        const spawnTime = Math.max(300, 1500 - (level * 100));
+        const shootTime = Math.max(500, 2000 - (level * 100));
+        const asteroidTime = Math.max(1000, 3000 - (level * 150));
+        
+        enemySpawnInterval = setInterval(spawnEnemy, spawnTime);
+        enemyShootInterval = setInterval(enemyShoot, shootTime);
+        asteroidSpawnInterval = setInterval(spawnAsteroid, asteroidTime);
+      }
       
       // Jet movement
       const jetSpeed = 8;
@@ -63,13 +99,13 @@ const gameContainer = document.getElementById('game-container');
         jet.style.left = Math.max(0, currentLeft - jetSpeed) + 'px';
       }
       if (keys['ArrowRight']) {
-        jet.style.left = Math.min(window.innerWidth - 50, currentLeft + jetSpeed) + 'px';
+        jet.style.left = Math.min(window.innerWidth - 40, currentLeft + jetSpeed) + 'px';
       }
       if (keys['ArrowUp']) {
         jet.style.top = Math.max(0, currentTop - jetSpeed) + 'px';
       }
       if (keys['ArrowDown']) {
-        jet.style.top = Math.min(window.innerHeight - 50, currentTop + jetSpeed) + 'px';
+        jet.style.top = Math.min(window.innerHeight - 40, currentTop + jetSpeed) + 'px';
       }
       
       // Move bullets
@@ -85,29 +121,66 @@ const gameContainer = document.getElementById('game-container');
         }
       }
       
-      // Move alien bullets
-      for (let i = alienBullets.length - 1; i >= 0; i--) {
-        const bullet = alienBullets[i];
+      // Move enemy bullets
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const bullet = enemyBullets[i];
         const currentTop = parseInt(bullet.style.top);
         
         if (currentTop > window.innerHeight) {
           gameContainer.removeChild(bullet);
-          alienBullets.splice(i, 1);
+          enemyBullets.splice(i, 1);
         } else {
           bullet.style.top = (currentTop + 7) + 'px';
         }
       }
       
-      // Move aliens
-      for (let i = aliens.length - 1; i >= 0; i--) {
-        const alien = aliens[i];
-        const currentTop = parseInt(alien.style.top);
+      // Move enemies
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+        const currentTop = parseInt(enemy.style.top);
         
         if (currentTop > window.innerHeight) {
-          gameContainer.removeChild(alien);
-          aliens.splice(i, 1);
+          gameContainer.removeChild(enemy);
+          enemies.splice(i, 1);
         } else {
-          alien.style.top = (currentTop + 2) + 'px';
+          // Different enemy types have different movement patterns
+          const type = enemy.dataset.type;
+          let speed = 2;
+          
+          if (type === ENEMY_TYPES.SPIDER) {
+            // Spiders move in a zigzag pattern
+            const currentLeft = parseInt(enemy.style.left);
+            const maxOffset = 30;
+            const offset = Math.sin(currentTop / 30) * maxOffset;
+            
+            enemy.style.left = (currentLeft + offset/10) + 'px';
+            speed = 3;
+          } else if (type === ENEMY_TYPES.BACTERIA) {
+            // Bacteria move faster
+            speed = 4;
+          }
+          
+          enemy.style.top = (currentTop + speed) + 'px';
+        }
+      }
+      
+      // Move asteroids
+      for (let i = asteroids.length - 1; i >= 0; i--) {
+        const asteroid = asteroids[i];
+        const currentTop = parseInt(asteroid.style.top);
+        const currentLeft = parseInt(asteroid.style.left);
+        const moveX = parseFloat(asteroid.dataset.moveX);
+        
+        if (currentTop > window.innerHeight || currentLeft < -50 || currentLeft > window.innerWidth) {
+          gameContainer.removeChild(asteroid);
+          asteroids.splice(i, 1);
+        } else {
+          asteroid.style.top = (currentTop + 3) + 'px';
+          asteroid.style.left = (currentLeft + moveX) + 'px';
+          // Rotate the asteroid
+          const currentRotate = (parseFloat(asteroid.dataset.rotate) || 0) + 1;
+          asteroid.style.transform = `rotate(${currentRotate}deg)`;
+          asteroid.dataset.rotate = currentRotate;
         }
       }
       
@@ -115,33 +188,70 @@ const gameContainer = document.getElementById('game-container');
       checkCollisions();
     }
     
-    // Spawn alien
-    function spawnAlien() {
+    // Spawn enemy
+    function spawnEnemy() {
       if (!gameRunning) return;
       
-      const alien = document.createElement('div');
-      alien.className = 'alien';
-      alien.style.left = Math.floor(Math.random() * (window.innerWidth - 40)) + 'px';
-      alien.style.top = '0px';
-      gameContainer.appendChild(alien);
-      aliens.push(alien);
+      // Choose an enemy type based on level and randomness
+      let enemyType;
+      const typeRoll = Math.random();
+      
+      if (level >= 3 && typeRoll < 0.33) {
+        enemyType = ENEMY_TYPES.FUNGI;
+      } else if (level >= 2 && typeRoll < 0.66) {
+        enemyType = ENEMY_TYPES.BACTERIA;
+      } else {
+        enemyType = ENEMY_TYPES.SPIDER;
+      }
+      
+      const enemy = document.createElement('div');
+      enemy.className = enemyType;
+      enemy.dataset.type = enemyType;
+      enemy.style.left = Math.floor(Math.random() * (window.innerWidth - 30)) + 'px';
+      enemy.style.top = '0px';
+      gameContainer.appendChild(enemy);
+      enemies.push(enemy);
     }
     
-    // Alien shooting
-    function alienShoot() {
-      if (!gameRunning || aliens.length === 0) return;
+    // Spawn asteroid
+    function spawnAsteroid() {
+      if (!gameRunning || level < 2) return;
       
-      // Choose a random alien to shoot
-      const shootingAlien = aliens[Math.floor(Math.random() * aliens.length)];
-      const alienLeft = parseInt(shootingAlien.style.left);
-      const alienTop = parseInt(shootingAlien.style.top);
+      const asteroid = document.createElement('div');
+      asteroid.className = 'asteroid';
       
-      const bullet = document.createElement('div');
-      bullet.className = 'alien-bullet';
-      bullet.style.left = (alienLeft + 20) + 'px';
-      bullet.style.top = (alienTop + 40) + 'px';
-      gameContainer.appendChild(bullet);
-      alienBullets.push(bullet);
+      // Random starting position at top of screen
+      asteroid.style.left = Math.floor(Math.random() * (window.innerWidth - 35)) + 'px';
+      asteroid.style.top = '0px';
+      
+      // Random horizontal movement
+      const moveX = (Math.random() - 0.5) * 4;
+      asteroid.dataset.moveX = moveX;
+      asteroid.dataset.rotate = 0;
+      
+      gameContainer.appendChild(asteroid);
+      asteroids.push(asteroid);
+    }
+    
+    // Enemy shooting
+    function enemyShoot() {
+      if (!gameRunning || enemies.length === 0) return;
+      
+      // Choose a random enemy to shoot
+      const shootingEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+      const enemyLeft = parseInt(shootingEnemy.style.left);
+      const enemyTop = parseInt(shootingEnemy.style.top);
+      const enemyType = shootingEnemy.dataset.type;
+      
+      // Not all enemies shoot
+      if (enemyType === ENEMY_TYPES.SPIDER || (enemyType === ENEMY_TYPES.BACTERIA && level >= 3)) {
+        const bullet = document.createElement('div');
+        bullet.className = 'enemy-bullet';
+        bullet.style.left = (enemyLeft + 15) + 'px';
+        bullet.style.top = (enemyTop + 30) + 'px';
+        gameContainer.appendChild(bullet);
+        enemyBullets.push(bullet);
+      }
     }
     
     // Player shooting
@@ -153,7 +263,7 @@ const gameContainer = document.getElementById('game-container');
       
       const bullet = document.createElement('div');
       bullet.className = 'bullet';
-      bullet.style.left = (jetLeft + 22) + 'px';
+      bullet.style.left = (jetLeft + 18) + 'px';
       bullet.style.top = jetTop + 'px';
       gameContainer.appendChild(bullet);
       bullets.push(bullet);
@@ -163,45 +273,87 @@ const gameContainer = document.getElementById('game-container');
     function checkCollisions() {
       const jetRect = jet.getBoundingClientRect();
       
-      // Check if jet collides with aliens
-      for (let i = aliens.length - 1; i >= 0; i--) {
-        const alienRect = aliens[i].getBoundingClientRect();
+      // Check if jet collides with enemies
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemyRect = enemies[i].getBoundingClientRect();
+        const enemyType = enemies[i].dataset.type;
         
-        if (isColliding(jetRect, alienRect)) {
+        if (isColliding(jetRect, enemyRect)) {
           gameOver();
           return;
         }
         
-        // Check if bullets hit aliens
+        // Check if bullets hit enemies
         for (let j = bullets.length - 1; j >= 0; j--) {
           const bulletRect = bullets[j].getBoundingClientRect();
           
-          if (isColliding(bulletRect, alienRect)) {
-            // Remove alien and bullet
-            gameContainer.removeChild(aliens[i]);
+          if (isColliding(bulletRect, enemyRect)) {
+            // Remove enemy and bullet
+            gameContainer.removeChild(enemies[i]);
             gameContainer.removeChild(bullets[j]);
-            aliens.splice(i, 1);
+            enemies.splice(i, 1);
             bullets.splice(j, 1);
             
+            // Different enemy types give different scores
+            let points = 10;
+            if (enemyType === ENEMY_TYPES.BACTERIA) {
+              points = 15;
+            } else if (enemyType === ENEMY_TYPES.FUNGI) {
+              points = 20;
+            }
+            
             // Increase score
-            score += 10;
+            score += points;
             scoreDisplay.textContent = 'Score: ' + score;
             break;
           }
         }
       }
       
-      // Check if alien bullets hit jet
-      for (let i = alienBullets.length - 1; i >= 0; i--) {
-        const bulletRect = alienBullets[i].getBoundingClientRect();
+      // Check if jet collides with asteroids
+      for (let i = asteroids.length - 1; i >= 0; i--) {
+        const asteroidRect = asteroids[i].getBoundingClientRect();
+        
+        if (isColliding(jetRect, asteroidRect)) {
+          gameOver();
+          return;
+        }
+        
+        // Check if bullets hit asteroids
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const bulletRect = bullets[j].getBoundingClientRect();
+          
+          if (isColliding(bulletRect, asteroidRect)) {
+            // Remove bullet
+            gameContainer.removeChild(bullets[j]);
+            bullets.splice(j, 1);
+            
+            // Asteroids take multiple hits
+            asteroids[i].dataset.hits = (parseInt(asteroids[i].dataset.hits) || 0) + 1;
+            
+            if (parseInt(asteroids[i].dataset.hits) >= 3) {
+              // Remove asteroid after 3 hits
+              gameContainer.removeChild(asteroids[i]);
+              asteroids.splice(i, 1);
+              
+              // Increase score
+              score += 25;
+              scoreDisplay.textContent = 'Score: ' + score;
+            }
+            break;
+          }
+        }
+      }
+      
+      // Check if enemy bullets hit jet
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const bulletRect = enemyBullets[i].getBoundingClientRect();
         
         if (isColliding(bulletRect, jetRect)) {
           gameOver();
           return;
         }
       }
-      
-      // Removed the boundary check that was causing the bug
     }
     
     // Collision detection
@@ -217,8 +369,9 @@ const gameContainer = document.getElementById('game-container');
       gameRunning = false;
       
       // Stop intervals
-      clearInterval(alienSpawnInterval);
-      clearInterval(alienShootInterval);
+      clearInterval(enemySpawnInterval);
+      clearInterval(enemyShootInterval);
+      clearInterval(asteroidSpawnInterval);
       clearInterval(gameLoopInterval);
       
       // Show game over screen
